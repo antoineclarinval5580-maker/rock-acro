@@ -8,10 +8,13 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#2b45c9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rock Acro">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Work+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 
@@ -62,6 +65,11 @@
   <section id="v-wait" hidden>
     <div class="empty"><b>Compte en attente</b><span>Ton profil est créé. L'animateur doit encore valider ton accès : tu recevras l'accès dès qu'il t'aura accepté. Reviens un peu plus tard !</span></div>
   </section>
+
+  <div class="install" id="install" hidden>
+    <span id="inst-txt">📲 Installe l'app sur ton téléphone pour l'ouvrir comme une vraie application.</span>
+    <span class="row"><button class="btn primary sm" id="inst-go" hidden>Installer</button><button class="btn sm" id="inst-x">Plus tard</button></span>
+  </div>
 
   <!-- Bibliothèque -->
   <section id="v-lib">
@@ -251,6 +259,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="app.js?v=9"></script>
+<script type="module" src="app.js?v=10"></script>
 </body>
 </html>

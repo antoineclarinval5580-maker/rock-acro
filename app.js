@@ -517,3 +517,17 @@ $("#imp").onchange = async e => {
   } catch (err) { msg.className = "msg err"; msg.textContent = "Échec de l'import : " + (err.message || err); }
   e.target.value = "";
 };
+
+// ---------------- Installation sur le téléphone ----------------
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+(() => {
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  let dismissed = false; try { dismissed = localStorage.getItem("inst-x") === "1"; } catch (e) {}
+  if (standalone || dismissed) return;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const box = $("#install"); let deferred = null;
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferred = e; $("#inst-go").hidden = false; box.hidden = false; });
+  if (ios) { $("#inst-txt").innerHTML = "📲 Pour l'installer : touche <b>Partager</b> puis <b>« Sur l'écran d'accueil »</b>."; box.hidden = false; }
+  $("#inst-go").onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice.catch(() => {}); deferred = null; box.hidden = true; };
+  $("#inst-x").onclick = () => { box.hidden = true; try { localStorage.setItem("inst-x", "1"); } catch (e) {} };
+})();
