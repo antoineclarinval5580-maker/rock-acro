@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rock Acro MJGO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Work+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== Connexion ===== -->
+<section id="auth" class="auth" hidden>
+  <div class="authbox">
+    <h1>Rock <span>acro</span></h1>
+    <p class="sub">La bibliothèque de passes, portés et danses de la MJGO.</p>
+    <div class="bar" role="tablist">
+      <button class="tab" data-auth="login" aria-pressed="true">Connexion</button>
+      <button class="tab" data-auth="signup" aria-pressed="false">Créer mon profil</button>
+    </div>
+    <form id="f-login" class="form">
+      <label>E-mail<input id="l-email" type="email" autocomplete="email" required></label>
+      <label>Mot de passe<input id="l-pass" type="password" autocomplete="current-password" required></label>
+      <button class="btn primary" type="submit">Se connecter</button>
+      <button class="link" type="button" id="forgot">Mot de passe oublié ?</button>
+    </form>
+    <form id="f-signup" class="form" hidden>
+      <label>Prénom<input id="s-name" maxlength="40" required></label>
+      <label>E-mail<input id="s-email" type="email" autocomplete="email" required></label>
+      <label>Mot de passe <span class="hint">(6 caractères minimum)</span><input id="s-pass" type="password" minlength="6" autocomplete="new-password" required></label>
+      <button class="btn primary" type="submit">Créer mon profil</button>
+    </form>
+    <form id="f-newpass" class="form" hidden>
+      <label>Nouveau mot de passe<input id="n-pass" type="password" minlength="6" autocomplete="new-password" required></label>
+      <button class="btn primary" type="submit">Enregistrer</button>
+    </form>
+    <p class="msg" id="a-msg"></p>
+  </div>
+</section>
+
+<!-- ===== App ===== -->
+<div id="app" class="wrap" hidden>
+  <header>
+    <div>
+      <h1>Rock <span>acro</span></h1>
+      <p class="sub" id="hello"></p>
+    </div>
+    <nav class="bar">
+      <button class="tab" data-view="lib" aria-pressed="true">Bibliothèque</button>
+      <button class="tab" data-view="journal" aria-pressed="false">Ma progression</button>
+      <button class="tab" data-view="admin" aria-pressed="false" id="nav-admin" hidden>Admin</button>
+      <button class="tab" id="logout">Déconnexion</button>
+    </nav>
+  </header>
+
+  <!-- Bibliothèque -->
+  <section id="v-lib">
+    <div class="count" id="count"></div>
+    <div class="bar" role="group" aria-label="Type">
+      <button class="tab" data-f="all" aria-pressed="true">Tous</button>
+      <button class="tab" data-f="Porté" aria-pressed="false">Portés</button>
+      <button class="tab" data-f="Passe" aria-pressed="false">Passes</button>
+      <button class="tab" data-f="Combinaison" aria-pressed="false">Combinaisons</button>
+      <button class="tab" data-f="Danse" aria-pressed="false">Danses</button>
+    </div>
+    <div class="bar">
+      <select id="vf" class="sel" aria-label="Vidéo">
+        <option value="all">Toutes les fiches</option>
+        <option value="vid">Avec vidéo</option>
+        <option value="todo">À filmer</option>
+      </select>
+      <select id="sf" class="sel" aria-label="Mon statut">
+        <option value="all">Tous mes statuts</option>
+        <option value="none">Pas commencé</option>
+        <option value="a_apprendre">À apprendre</option>
+        <option value="en_cours">En cours</option>
+        <option value="maitrise">Maîtrisé</option>
+      </select>
+      <input class="search" id="q" type="search" placeholder="Chercher une figure…" aria-label="Chercher">
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden><b id="empty-t">Chargement…</b><span id="empty-s"></span></div>
+  </section>
+
+  <!-- Journal -->
+  <section id="v-journal" hidden>
+    <div class="stats" id="stats"></div>
+    <div class="quota"><div class="qbar"><i id="qfill"></i></div><span id="qtxt" class="msg"></span></div>
+    <h2>Mon journal</h2>
+    <div id="log" class="log"></div>
+  </section>
+
+  <!-- Admin -->
+  <section id="v-admin" hidden>
+    <div class="card">
+      <h2>Inscriptions</h2>
+      <p class="msg">Fermées : seuls les comptes existants peuvent se connecter. Ouvre-les quand la bibliothèque est prête, puis partage le lien.</p>
+      <button class="btn" id="signups"></button>
+    </div>
+    <div class="card">
+      <h2>Ajouter une fiche</h2>
+      <form class="panel" id="addform">
+        <label>Type<select id="f-kind"><option>Porté</option><option>Passe</option><option>Combinaison</option><option>Danse</option></select></label>
+        <label>Nom<input id="f-name" required maxlength="80" placeholder="ex. Passe sous le bras"></label>
+        <label class="full">Sous-titre (facultatif)<input id="f-note" maxlength="160"></label>
+        <label class="full">Vidéo (facultatif)<input id="f-file" type="file" accept="video/*"></label>
+        <div class="full row"><button class="btn primary" type="submit">Ajouter</button><span class="msg" id="f-msg"></span></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Membres</h2>
+      <div id="members" class="members"></div>
+    </div>
+    <div class="card">
+      <h2>Importer l'ancienne bibliothèque</h2>
+      <p class="msg">Choisis le fichier <b>rock-acro-export.zip</b> téléchargé depuis l'ancienne app Claude. Les fiches existantes portant le même identifiant sont mises à jour.</p>
+      <input type="file" id="imp" accept=".zip">
+      <div class="msg" id="imp-msg"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ===== Fiche ===== -->
+<div class="player" id="player" hidden>
+  <div class="ptop">
+    <div style="min-width:0">
+      <div class="ptitle" id="ptitle"></div>
+      <div class="psub" id="psub"></div>
+    </div>
+    <button class="btn" id="close">✕ Fermer</button>
+  </div>
+  <div class="pinfo" id="pinfo"></div>
+
+  <div class="stages" id="stages">
+    <figure class="stage" id="st-ref">
+      <figcaption>Référence</figcaption>
+      <video id="vref" playsinline webkit-playsinline muted loop autoplay preload="auto"></video>
+      <div class="noVid" id="novid"><b>À filmer</b><span>Pas encore de vidéo de référence.</span><span id="novid-a"></span></div>
+    </figure>
+    <figure class="stage" id="st-me" hidden>
+      <figcaption>Moi <select id="mysel" class="sel sm"></select></figcaption>
+      <video id="vme" playsinline webkit-playsinline muted loop preload="auto"></video>
+    </figure>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="prev" aria-label="Fiche précédente">◀</button>
+    <button class="btn" id="play">Pause</button>
+    <button class="btn" id="sync" title="Relancer les deux vidéos ensemble">⟲ Ensemble</button>
+    <span class="sep"></span>
+    <button class="btn spd" data-s="0.25">×0,25</button>
+    <button class="btn spd" data-s="0.5">×0,5</button>
+    <button class="btn spd on" data-s="1">×1</button>
+    <span class="sep"></span>
+    <button class="btn" id="next" aria-label="Fiche suivante">▶</button>
+  </div>
+
+  <div class="panel">
+    <h3>Ma progression</h3>
+    <div class="full seg" id="status">
+      <button class="btn" data-st="a_apprendre">À apprendre</button>
+      <button class="btn" data-st="en_cours">En cours</button>
+      <button class="btn ok" data-st="maitrise">✓ Maîtrisé</button>
+    </div>
+    <label class="full">Note pour mon journal (facultatif)<input id="p-note" maxlength="240" placeholder="ex. réussi 3 fois sur 5, attention au timing"></label>
+    <div class="full row"><button class="btn primary" id="p-save">Noter dans mon journal</button><span class="msg" id="p-msg"></span></div>
+    <label class="full">Ajouter ma vidéo <span class="hint">Visible par toi seul (et l'admin). Les grosses vidéos sont compressées avant l'envoi.</span><input id="my-file" type="file" accept="video/*"></label>
+    <div class="full" id="mylist"></div>
+  </div>
+
+  <div class="controls"><button class="btn" id="edit" hidden>✎ Modifier la fiche (admin)</button></div>
+  <div class="panel" id="editp" hidden>
+    <h3>Modifier la fiche</h3>
+    <label>Nom<input id="e-name" maxlength="80"></label>
+    <label>Type<select id="e-kind"><option>Porté</option><option>Passe</option><option>Combinaison</option><option>Danse</option></select></label>
+    <label class="full">Sous-titre<input id="e-note" maxlength="160"></label>
+    <div class="full row"><button class="btn primary" id="e-save">Enregistrer</button><span class="msg" id="e-msg"></span></div>
+    <label class="full"><span id="e-file-t">Mettre une vidéo</span> <span class="hint">50 Mo max. L'ancienne est remplacée.</span><input id="e-file" type="file" accept="video/*"></label>
+    <label class="full">Image de la vignette <span class="hint">Une photo ou une capture.</span><input id="e-img" type="file" accept="image/*"></label>
+    <div class="full" id="e-trim">
+      <div class="hint">Rogner : mets la vidéo en pause au bon moment (au ralenti si besoin), puis fixe le début et la fin. La vidéo d'origine n'est pas modifiée.</div>
+      <div class="row">
+        <label style="flex:1;min-width:110px">Début (s)<input id="t-start" type="number" min="0" step="0.1"></label>
+        <label style="flex:1;min-width:110px">Fin (s)<input id="t-end" type="number" min="0" step="0.1"></label>
+      </div>
+      <div class="row">
+        <button class="btn" id="t-setS">⇤ Début ici</button>
+        <button class="btn" id="t-setE">Fin ici ⇥</button>
+        <button class="btn" id="t-prev">▶ Aperçu</button>
+        <button class="btn" id="t-full">Voir tout</button>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="t-save">Enregistrer le découpage</button>
+        <button class="btn" id="t-reset">Annuler le découpage</button>
+        <button class="btn" id="t-poster">🖼 Vignette = image actuelle</button>
+      </div>
+      <div class="msg" id="t-msg"></div>
+    </div>
+    <div class="full row">
+      <button class="btn danger" id="e-unvid">Retirer la vidéo</button>
+      <button class="btn danger" id="e-del">Supprimer la fiche</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
