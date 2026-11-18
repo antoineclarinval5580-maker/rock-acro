@@ -186,6 +186,9 @@ function load() {
   $$("#status [data-st]").forEach(b => b.classList.toggle("on", b.dataset.st === st));
   $("#p-note").value = ""; $("#p-msg").textContent = "";
   $("#edit").hidden = !profile?.is_admin; $("#editp").hidden = true;
+  $("#q-del").hidden = !profile?.is_admin; $("#q-unvid").hidden = !(profile?.is_admin && hasVid(m));
+  for (const b of [$("#q-del"), $("#q-unvid")]) b.classList.remove("armed");
+  $("#q-del").textContent = "🗑 Fiche"; $("#q-unvid").textContent = "🗑 Vidéo";
 }
 let meSel = null;
 async function signed(paths) {
@@ -407,6 +410,18 @@ $("#e-del").onclick = async () => { const b = $("#e-del");
   const m = MOVES.find(x => x.id === editId);
   const { error } = await sb.from("moves").delete().eq("id", m.id); if (error) { emsg("Échec : " + error.message, 1); return; }
   await rmLib(m.video_path, m.poster_path); MOVES = MOVES.filter(x => x.id !== m.id); closeP(); };
+
+// Suppression rapide (admin), avec confirmation
+function arm(b, label, txt) { if (b.classList.contains("armed")) return true; b.classList.add("armed"); b.textContent = txt;
+  setTimeout(() => { b.classList.remove("armed"); b.textContent = label; }, 4000); return false; }
+$("#q-del").onclick = async () => { const b = $("#q-del"); if (!arm(b, "🗑 Fiche", "Confirmer : supprimer la fiche ?")) return;
+  const m = list[cur]; const { error } = await sb.from("moves").delete().eq("id", m.id);
+  if (error) { toast("Échec : " + error.message); return; }
+  await rmLib(m.video_path, m.poster_path); MOVES = MOVES.filter(x => x.id !== m.id); toast("Fiche supprimée"); closeP(); };
+$("#q-unvid").onclick = async () => { const b = $("#q-unvid"); if (!arm(b, "🗑 Vidéo", "Confirmer : retirer la vidéo ?")) return;
+  const m = list[cur];
+  try { await upd(m.id, { video_path: null, poster_path: null, trim_start: null, trim_end: null }); await rmLib(m.video_path, m.poster_path); toast("Vidéo retirée"); load(); }
+  catch (e) { toast("Échec : " + e.message); } };
 
 // ---------------- Admin : page ----------------
 async function renderAdmin() {

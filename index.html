@@ -160,7 +160,11 @@
       <div class="ptitle" id="ptitle"></div>
       <div class="psub" id="psub"></div>
     </div>
-    <button class="btn" id="close">✕ Fermer</button>
+    <span class="row" style="flex-wrap:nowrap">
+      <button class="btn danger" id="q-unvid" hidden title="Retirer la vidéo de cette fiche">🗑 Vidéo</button>
+      <button class="btn danger" id="q-del" hidden title="Supprimer cette fiche">🗑 Fiche</button>
+      <button class="btn" id="close">✕ Fermer</button>
+    </span>
   </div>
   <div class="pinfo" id="pinfo"></div>
   <div class="desc" id="pdesc" hidden></div>
@@ -247,6 +251,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="app.js?v=7"></script>
+<script type="module" src="app.js?v=8"></script>
 </body>
 </html>
