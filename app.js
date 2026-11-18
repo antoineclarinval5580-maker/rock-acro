@@ -12,7 +12,7 @@ const MAXB = 50 * 1024 * 1024;
 
 let me = null, profile = null, settings = { signups_open: false };
 let MOVES = [], PROG = {}, MYVIDS = [], list = [], cur = 0, speed = 1;
-let filter = "all", vfilter = "all", sfilter = "all", q = "";
+let filter = "all", vfilter = "all", sfilter = "all", dfilter = "all", sort = "ord", q = "";
 let trim = null, trimOff = false;
 let started = false, loaded = false;
 
@@ -20,6 +20,16 @@ function toast(t) { const el = $("#toast"); el.textContent = t; el.hidden = fals
 const pub = p => p ? sb.storage.from("library").getPublicUrl(p).data.publicUrl : "";
 const hasVid = m => !!m.video_path;
 const stamp = () => Date.now().toString(36);
+
+// ---------------- Étoiles ----------------
+const RATE = {};
+function setupRate(el) {
+  const key = el.dataset.rate; RATE[key] = 0;
+  el.innerHTML = [1, 2, 3, 4, 5].map(n => `<button type="button" data-n="${n}" aria-label="${n} étoile${n > 1 ? "s" : ""}">★</button>`).join("") + '<button type="button" class="clr" data-n="0">effacer</button>';
+  el.querySelectorAll("[data-n]").forEach(b => b.onclick = () => setRate(key, +b.dataset.n));
+}
+function setRate(key, n) { RATE[key] = n || 0; document.querySelectorAll(`[data-rate="${key}"] [data-n]`).forEach(b => { if (+b.dataset.n) b.classList.toggle("on", +b.dataset.n <= RATE[key]); }); }
+document.querySelectorAll("[data-rate]").forEach(setupRate);
 
 // ---------------- Auth ----------------
 function amsg(t, err) { $("#a-msg").textContent = t || ""; $("#a-msg").className = "msg" + (err ? " err" : ""); }
@@ -71,6 +81,11 @@ async function start() {
   profile = p.data; settings = s.data || settings;
   $("#hello").textContent = profile ? `Salut ${profile.display_name} !` : "";
   $("#nav-admin").hidden = !profile?.is_admin;
+  if (!profile || !profile.approved) {
+    $("#v-lib").hidden = true; $("#v-wait").hidden = false; $$("[data-view]").forEach(b => b.hidden = true);
+    if (!profile) $("#v-wait").querySelector("span").textContent = "Ton accès n'a pas été accepté. Contacte l'animateur si c'est une erreur.";
+    return;
+  }
   await Promise.all([loadMoves(), loadMine()]);
   loaded = true; render();
 }
@@ -102,7 +117,12 @@ function render() {
   list = MOVES.filter(m => (filter === "all" || m.kind === filter)
     && (vfilter === "all" || (vfilter === "vid" ? hasVid(m) : !hasVid(m)))
     && (sfilter === "all" || (sfilter === "none" ? !PROG[m.id] : PROG[m.id] === sfilter))
+    && (dfilter === "all" || +m.diff === +dfilter)
     && (!nq || norm(m.name + " " + (m.note || "")).includes(nq)));
+  const dv = m => m.diff || 0;
+  if (sort === "dup") list.sort((a, b) => (dv(a) || 9) - (dv(b) || 9) || a.ord - b.ord);
+  if (sort === "ddown") list.sort((a, b) => dv(b) - dv(a) || a.ord - b.ord);
+  if (sort === "az") list.sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }));
   const nv = MOVES.filter(hasVid).length, n = MOVES.filter(m => PROG[m.id] === "maitrise").length;
   $("#count").textContent = loaded ? `${nv} vidéo${nv > 1 ? "s" : ""} · ${MOVES.length - nv} à filmer · ${n} maîtrisé${n > 1 ? "s" : ""}` : "";
   const mineCount = id => MYVIDS.filter(v => v.move_id === id).length;
@@ -126,6 +146,8 @@ function render() {
 $$("[data-f]").forEach(t => t.onclick = () => { filter = t.dataset.f; $$("[data-f]").forEach(x => x.setAttribute("aria-pressed", x === t)); render(); });
 $("#vf").onchange = e => { vfilter = e.target.value; render(); };
 $("#sf").onchange = e => { sfilter = e.target.value; render(); };
+$("#df").onchange = e => { dfilter = e.target.value; render(); };
+$("#so").onchange = e => { sort = e.target.value; render(); };
 $("#q").oninput = e => { q = e.target.value; render(); };
 
 // ---------------- Lecteur ----------------
@@ -315,6 +337,7 @@ const fmt = t => (Math.round(t * 10) / 10).toFixed(1);
 $("#edit").onclick = () => {
   const m = list[cur]; editId = m.id; const p = $("#editp"); p.hidden = !p.hidden; if (p.hidden) { trimOff = false; return; }
   $("#e-name").value = m.name; $("#e-note").value = m.note || ""; $("#e-kind").value = m.kind; emsg("");
+  setRate("e-diff", m.diff); setRate("e-risk", m.risk); setRate("e-spec", m.spec);
   $("#e-file-t").textContent = hasVid(m) ? "Remplacer la vidéo" : "Mettre une vidéo";
   $("#e-trim").hidden = !hasVid(m); $("#e-unvid").hidden = !hasVid(m);
   const has = m.trim_end > m.trim_start;
@@ -327,7 +350,7 @@ async function upd(id, patch) { const { data, error } = await sb.from("moves").u
 async function rmLib(...paths) { const p = paths.filter(Boolean); if (p.length) await sb.storage.from("library").remove(p); }
 $("#e-save").onclick = async () => {
   const name = $("#e-name").value.trim(); if (!name) { emsg("Le nom ne peut pas être vide.", 1); return; }
-  try { const d = await upd(editId, { name, note: $("#e-note").value.trim(), kind: $("#e-kind").value }); $("#ptitle").textContent = d.name; $("#psub").textContent = d.note; emsg("Enregistré ✓"); }
+  try { const d = await upd(editId, { name, note: $("#e-note").value.trim(), kind: $("#e-kind").value, diff: RATE["e-diff"] || null, risk: RATE["e-risk"] || null, spec: RATE["e-spec"] || null }); load(); $("#editp").hidden = false; emsg("Enregistré ✓"); }
   catch (e) { emsg("Échec : " + e.message, 1); }
 };
 function readTrim() { const v = $("#vref"), d = v.duration || 0; let s = parseFloat($("#t-start").value), e = parseFloat($("#t-end").value);
@@ -383,15 +406,32 @@ $("#e-del").onclick = async () => { const b = $("#e-del");
 
 // ---------------- Admin : page ----------------
 async function renderAdmin() {
-  const b = $("#signups"); b.textContent = settings.signups_open ? "🔓 Inscriptions ouvertes — fermer" : "🔒 Inscriptions fermées — ouvrir"; b.classList.toggle("on", settings.signups_open);
+  const b = $("#signups"); b.textContent = settings.signups_open ? "🔓 Inscriptions libres ouvertes — fermer" : "🔒 Inscriptions libres fermées — ouvrir"; b.classList.toggle("on", settings.signups_open);
   $("#members").innerHTML = '<p class="msg">Chargement…</p>';
-  const [p, g] = await Promise.all([sb.from("profiles").select("*").order("created_at"), sb.from("progress").select("user_id,status")]);
+  const [p, g, em] = await Promise.all([sb.from("profiles").select("*").order("created_at"), sb.from("progress").select("user_id,status"), sb.from("allowed_emails").select("*").order("added_at", { ascending: false })]);
+  const users = p.data || [];
+  const hasAcc = new Set(users.map(u => u.email));
+  $("#emails").innerHTML = (em.data || []).map(r => `<div class="member"><span>${esc(r.email)} <span class="msg">${hasAcc.has(r.email) ? "· profil créé ✓" : "· pas encore inscrit"}</span></span><button class="btn sm danger" data-rmem="${esc(r.email)}">Retirer</button></div>`).join("") || '<p class="msg">Aucune adresse autorisée pour l\'instant.</p>';
+  $$("[data-rmem]").forEach(x => x.onclick = async () => { await sb.from("allowed_emails").delete().eq("email", x.dataset.rmem); renderAdmin(); });
+  const pend = users.filter(u => !u.approved);
+  $("#pending-card").hidden = !pend.length;
+  $("#pending").innerHTML = pend.map(u => `<div class="member"><span><b>${esc(u.display_name)}</b> <span class="msg">${esc(u.email || "")} · demandé le ${new Date(u.created_at).toLocaleDateString("fr-BE")}</span></span>
+     <span class="row"><button class="btn sm primary" data-ok="${esc(u.email || "")}" data-uid="${u.id}">Accepter</button><button class="btn sm danger" data-no="${u.id}">Refuser</button></span></div>`).join("");
+  $$("[data-ok]").forEach(x => x.onclick = async () => { const r = x.dataset.ok ? await sb.from("allowed_emails").upsert({ email: x.dataset.ok }) : await sb.from("profiles").update({ approved: true }).eq("id", x.dataset.uid); if (r.error) toast(r.error.message); renderAdmin(); });
+  $$("[data-no]").forEach(x => x.onclick = async () => { const r = await sb.from("profiles").delete().eq("id", x.dataset.no); if (r.error) toast(r.error.message); renderAdmin(); });
   const mast = {}; (g.data || []).forEach(r => { if (r.status === "maitrise") mast[r.user_id] = (mast[r.user_id] || 0) + 1; });
-  $("#members").innerHTML = (p.data || []).map(u => `<div class="member"><span><b>${esc(u.display_name)}</b>${u.is_admin ? ' <span class="pill maitrise">admin</span>' : ""}
+  $("#members").innerHTML = users.filter(u => u.approved).map(u => `<div class="member"><span><b>${esc(u.display_name)}</b> <span class="msg">${esc(u.email || "")}</span>${u.is_admin ? ' <span class="pill maitrise">admin</span>' : ""}
      <span class="msg"> · inscrit le ${new Date(u.created_at).toLocaleDateString("fr-BE")} · ${mast[u.id] || 0} maîtrisé(s)</span></span>
      ${u.id === me.id ? "" : `<button class="btn sm" data-adm="${u.id}" data-to="${!u.is_admin}">${u.is_admin ? "Retirer admin" : "Rendre admin"}</button>`}</div>`).join("") || '<p class="msg">Aucun membre.</p>';
   $$("[data-adm]").forEach(x => x.onclick = async () => { const { error } = await sb.from("profiles").update({ is_admin: x.dataset.to === "true" }).eq("id", x.dataset.adm); if (error) toast(error.message); renderAdmin(); });
 }
+$("#em-go").onclick = async () => {
+  const list = $("#em-add").value.split(/[\s,;]+/).map(x => x.trim().toLowerCase()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+  if (!list.length) { $("#em-msg").textContent = "Aucune adresse e-mail valide."; return; }
+  const { error } = await sb.from("allowed_emails").upsert(list.map(email => ({ email })));
+  $("#em-msg").textContent = error ? "Échec : " + error.message : `${list.length} adresse${list.length > 1 ? "s" : ""} autorisée${list.length > 1 ? "s" : ""} ✓`;
+  if (!error) { $("#em-add").value = ""; renderAdmin(); }
+};
 $("#signups").onclick = async () => {
   const { data, error } = await sb.from("settings").update({ signups_open: !settings.signups_open }).eq("id", 1).select().single();
   if (error) { toast(error.message); return; } settings = data; renderAdmin();
@@ -401,10 +441,10 @@ $("#addform").onsubmit = async e => {
   const ord = MOVES.reduce((a, m) => Math.max(a, m.ord || 0), 0) + 1;
   try {
     msg.textContent = "Création…";
-    const { data, error } = await sb.from("moves").insert({ kind: $("#f-kind").value, name: $("#f-name").value.trim(), note: $("#f-note").value.trim(), ord }).select().single();
+    const { data, error } = await sb.from("moves").insert({ kind: $("#f-kind").value, name: $("#f-name").value.trim(), note: $("#f-note").value.trim(), diff: RATE["f-diff"] || null, ord }).select().single();
     if (error) throw error; MOVES.push(data);
     const f = $("#f-file").files[0]; if (f) { msg.textContent = "Envoi de la vidéo…"; await putLibVideo(data, f); }
-    msg.textContent = "Ajouté ✓"; $("#addform").reset(); render();
+    msg.textContent = "Ajouté ✓"; $("#addform").reset(); setRate("f-diff", 0); render();
   } catch (err) { msg.className = "msg err"; msg.textContent = "Échec : " + (err.message || err); }
 };
 

@@ -6,7 +6,7 @@
 <title>Rock Acro MJGO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Work+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 
@@ -54,6 +54,10 @@
     </nav>
   </header>
 
+  <section id="v-wait" hidden>
+    <div class="empty"><b>Compte en attente</b><span>Ton profil est créé. L'animateur doit encore valider ton accès : tu recevras l'accès dès qu'il t'aura accepté. Reviens un peu plus tard !</span></div>
+  </section>
+
   <!-- Bibliothèque -->
   <section id="v-lib">
     <div class="count" id="count"></div>
@@ -77,6 +81,16 @@
         <option value="en_cours">En cours</option>
         <option value="maitrise">Maîtrisé</option>
       </select>
+      <select id="df" class="sel" aria-label="Difficulté">
+        <option value="all">Toutes difficultés</option>
+        <option value="1">★ Facile</option><option value="2">★★</option><option value="3">★★★</option><option value="4">★★★★</option><option value="5">★★★★★ Très difficile</option>
+      </select>
+      <select id="so" class="sel" aria-label="Trier">
+        <option value="ord">Tri : ordre habituel</option>
+        <option value="dup">Tri : du plus facile au plus difficile</option>
+        <option value="ddown">Tri : du plus difficile au plus facile</option>
+        <option value="az">Tri : nom A → Z</option>
+      </select>
       <input class="search" id="q" type="search" placeholder="Chercher une figure…" aria-label="Chercher">
     </div>
     <div class="grid" id="grid"></div>
@@ -94,8 +108,19 @@
   <!-- Admin -->
   <section id="v-admin" hidden>
     <div class="card">
-      <h2>Inscriptions</h2>
-      <p class="msg">Fermées : seuls les comptes existants peuvent se connecter. Ouvre-les quand la bibliothèque est prête, puis partage le lien.</p>
+      <h2>Accès par e-mail</h2>
+      <p class="msg">Ajoute les adresses des personnes autorisées : elles pourront créer leur profil et auront accès tout de suite. Un compte déjà créé avec une de ces adresses est validé automatiquement.</p>
+      <div class="row"><textarea id="em-add" rows="2" class="ta" placeholder="ex. lea@mail.com, tom@mail.com (une ou plusieurs adresses)"></textarea><button class="btn primary" id="em-go">Autoriser</button></div>
+      <div class="msg" id="em-msg"></div>
+      <div id="emails" class="members"></div>
+    </div>
+    <div class="card" id="pending-card">
+      <h2>Demandes en attente</h2>
+      <div id="pending" class="members"></div>
+    </div>
+    <div class="card">
+      <h2>Inscriptions libres</h2>
+      <p class="msg"><b>Fermées</b> : seules les adresses autorisées ci-dessus peuvent créer un profil. <b>Ouvertes</b> : tout le monde peut créer un profil, mais il reste en attente jusqu'à ce que tu l'acceptes.</p>
       <button class="btn" id="signups"></button>
     </div>
     <div class="card">
@@ -104,6 +129,7 @@
         <label>Type<select id="f-kind"><option>Porté</option><option>Passe</option><option>Combinaison</option><option>Danse</option></select></label>
         <label>Nom<input id="f-name" required maxlength="80" placeholder="ex. Passe sous le bras"></label>
         <label class="full">Sous-titre (facultatif)<input id="f-note" maxlength="160"></label>
+        <div class="full"><span class="lbl">Difficulté</span><div class="rate" data-rate="f-diff"></div></div>
         <label class="full">Vidéo (facultatif)<input id="f-file" type="file" accept="video/*"></label>
         <div class="full row"><button class="btn primary" type="submit">Ajouter</button><span class="msg" id="f-msg"></span></div>
       </form>
@@ -179,6 +205,9 @@
     <label>Nom<input id="e-name" maxlength="80"></label>
     <label>Type<select id="e-kind"><option>Porté</option><option>Passe</option><option>Combinaison</option><option>Danse</option></select></label>
     <label class="full">Sous-titre<input id="e-note" maxlength="160"></label>
+    <div><span class="lbl">Difficulté</span><div class="rate" data-rate="e-diff"></div></div>
+    <div><span class="lbl">Risque</span><div class="rate" data-rate="e-risk"></div></div>
+    <div><span class="lbl">Spectaculaire</span><div class="rate" data-rate="e-spec"></div></div>
     <div class="full row"><button class="btn primary" id="e-save">Enregistrer</button><span class="msg" id="e-msg"></span></div>
     <label class="full"><span id="e-file-t">Mettre une vidéo</span> <span class="hint">50 Mo max. L'ancienne est remplacée.</span><input id="e-file" type="file" accept="video/*"></label>
     <label class="full">Image de la vignette <span class="hint">Une photo ou une capture.</span><input id="e-img" type="file" accept="image/*"></label>
@@ -210,6 +239,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="app.js?v=3"></script>
+<script type="module" src="app.js?v=4"></script>
 </body>
 </html>
