@@ -512,8 +512,8 @@ $("#imp").onchange = async e => {
       }
       const { error } = await sb.from("moves").upsert(row); if (error) throw error;
     }
-    await loadMoves(); let nd = 0; try { nd = await applyDescriptions(); } catch (e) {}
-    msg.textContent = `Import terminé ✓ ${data.length} fiches, ${nd} descriptions ajoutées.`; render();
+    await loadMoves();
+    msg.textContent = `Import terminé ✓ ${data.length} fiches.`; render();
   } catch (err) { msg.className = "msg err"; msg.textContent = "Échec de l'import : " + (err.message || err); }
   e.target.value = "";
 };
