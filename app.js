@@ -490,8 +490,8 @@ $("#imp").onchange = async e => {
         source: m.source || null, catalog: !!m.catalog, description: m.description || null, ord: m.order || 0, trim_start: m.trimStart ?? null, trim_end: m.trimEnd ?? null, video_path: null, poster_path: null };
       for (const [k, key, type] of [["video", "video_path", "video/mp4"], ["poster", "poster_path", "image/jpeg"]]) {
         if (m[k] && files[m[k]]) {
-          const path = `moves/${m.id}/${k}-import.${type === "video/mp4" ? "mp4" : "jpg"}`;
-          const up = await sb.storage.from("library").upload(path, new Blob([files[m[k]]], { type }), { contentType: type, upsert: true });
+          const path = `moves/${m.id}/${k}-${stamp()}.${type === "video/mp4" ? "mp4" : "jpg"}`;
+          const up = await sb.storage.from("library").upload(path, new Blob([files[m[k]]], { type }), { contentType: type });
           if (up.error) throw up.error; row[key] = path;
         }
       }
