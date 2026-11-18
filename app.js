@@ -452,6 +452,21 @@ $("#addform").onsubmit = async e => {
   } catch (err) { msg.className = "msg err"; msg.textContent = "Échec : " + (err.message || err); }
 };
 
+// ---------------- Descriptions préparées ----------------
+async function applyDescriptions(msgEl) {
+  const r = await fetch("descriptions.json?v=" + Date.now()); if (!r.ok) throw new Error("fichier de descriptions introuvable");
+  const D = await r.json(); let n = 0;
+  for (const m of MOVES) {
+    if (m.description || !D[m.id]) continue;
+    const { error } = await sb.from("moves").update({ description: D[m.id] }).eq("id", m.id);
+    if (error) throw error; m.description = D[m.id]; n++; if (msgEl) msgEl.textContent = `Descriptions : ${n}…`;
+  }
+  return n;
+}
+$("#desc-go").onclick = async () => { const msg = $("#imp-msg"); msg.className = "msg";
+  try { const n = await applyDescriptions(msg); msg.textContent = `${n} description${n > 1 ? "s" : ""} ajoutée${n > 1 ? "s" : ""} ✓`; render(); }
+  catch (e) { msg.className = "msg err"; msg.textContent = "Échec : " + (e.message || e); } };
+
 // ---------------- Import de l'ancienne app (zip non compressé) ----------------
 function readZip(buf) {
   const dv = new DataView(buf), files = {}; let p = 0; const dec = new TextDecoder();
@@ -482,7 +497,8 @@ $("#imp").onchange = async e => {
       }
       const { error } = await sb.from("moves").upsert(row); if (error) throw error;
     }
-    msg.textContent = `Import terminé ✓ ${data.length} fiches.`; await loadMoves(); render();
+    await loadMoves(); let nd = 0; try { nd = await applyDescriptions(); } catch (e) {}
+    msg.textContent = `Import terminé ✓ ${data.length} fiches, ${nd} descriptions ajoutées.`; render();
   } catch (err) { msg.className = "msg err"; msg.textContent = "Échec de l'import : " + (err.message || err); }
   e.target.value = "";
 };
