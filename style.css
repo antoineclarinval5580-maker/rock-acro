@@ -129,3 +129,5 @@ input,select,textarea{font:15px var(--body)}
 .rate .clr{font-size:13px;color:var(--muted);margin-left:8px}
 .lbl{display:block;font-weight:600;font-size:13px;margin-bottom:2px}
 .ta{flex:1;min-width:220px;font:15px var(--body);padding:9px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);resize:vertical}
+.desc{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;max-width:900px;width:100%;margin:0 auto}
+.desc ol{margin:0;padding-left:20px}.desc li{margin:2px 0}

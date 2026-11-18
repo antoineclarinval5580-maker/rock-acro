@@ -118,7 +118,7 @@ function render() {
     && (vfilter === "all" || (vfilter === "vid" ? hasVid(m) : !hasVid(m)))
     && (sfilter === "all" || (sfilter === "none" ? !PROG[m.id] : PROG[m.id] === sfilter))
     && (dfilter === "all" || +m.diff === +dfilter)
-    && (!nq || norm(m.name + " " + (m.note || "")).includes(nq)));
+    && (!nq || norm(m.name + " " + (m.note || "") + " " + (m.description || "")).includes(nq)));
   const dv = m => m.diff || 0;
   if (sort === "dup") list.sort((a, b) => (dv(a) || 9) - (dv(b) || 9) || a.ord - b.ord);
   if (sort === "ddown") list.sort((a, b) => dv(b) - dv(a) || a.ord - b.ord);
@@ -172,6 +172,9 @@ function load() {
   if (m.diff) info.push(`<span>Difficulté <span class="stars">${stars(m.diff)}</span></span>`, `<span>Risque <span class="stars">${stars(m.risk)}</span></span>`, `<span>Spectaculaire <span class="stars">${stars(m.spec)}</span></span>`);
   if (m.source) info.push(`<a href="${esc(m.source)}" target="_blank" rel="noopener">Fiche technique (site P. Messin) ↗</a>`);
   $("#pinfo").innerHTML = info.join("");
+  const steps = String(m.description || "").split("\n").map(x => x.replace(/^\s*(\d+[.)]|[-•])\s*/, "").trim()).filter(Boolean);
+  $("#pdesc").hidden = !steps.length;
+  $("#pdesc").innerHTML = steps.length > 1 ? "<ol>" + steps.map(x => `<li>${esc(x)}</li>`).join("") + "</ol>" : esc(steps[0] || "");
   const vr = $("#vref");
   trim = (m.trim_end > m.trim_start) ? { s: +m.trim_start || 0, e: +m.trim_end } : null; trimOff = false;
   if (hasVid(m)) { vr.hidden = false; $("#novid").hidden = true; setVideo(vr, pub(m.video_path), m.id); $("#play").textContent = "Pause"; }
@@ -337,6 +340,7 @@ const fmt = t => (Math.round(t * 10) / 10).toFixed(1);
 $("#edit").onclick = () => {
   const m = list[cur]; editId = m.id; const p = $("#editp"); p.hidden = !p.hidden; if (p.hidden) { trimOff = false; return; }
   $("#e-name").value = m.name; $("#e-note").value = m.note || ""; $("#e-kind").value = m.kind; emsg("");
+  $("#e-desc").value = m.description || "";
   setRate("e-diff", m.diff); setRate("e-risk", m.risk); setRate("e-spec", m.spec);
   $("#e-file-t").textContent = hasVid(m) ? "Remplacer la vidéo" : "Mettre une vidéo";
   $("#e-trim").hidden = !hasVid(m); $("#e-unvid").hidden = !hasVid(m);
@@ -350,7 +354,7 @@ async function upd(id, patch) { const { data, error } = await sb.from("moves").u
 async function rmLib(...paths) { const p = paths.filter(Boolean); if (p.length) await sb.storage.from("library").remove(p); }
 $("#e-save").onclick = async () => {
   const name = $("#e-name").value.trim(); if (!name) { emsg("Le nom ne peut pas être vide.", 1); return; }
-  try { const d = await upd(editId, { name, note: $("#e-note").value.trim(), kind: $("#e-kind").value, diff: RATE["e-diff"] || null, risk: RATE["e-risk"] || null, spec: RATE["e-spec"] || null }); load(); $("#editp").hidden = false; emsg("Enregistré ✓"); }
+  try { const d = await upd(editId, { name, note: $("#e-note").value.trim(), kind: $("#e-kind").value, description: $("#e-desc").value.trim() || null, diff: RATE["e-diff"] || null, risk: RATE["e-risk"] || null, spec: RATE["e-spec"] || null }); load(); $("#editp").hidden = false; emsg("Enregistré ✓"); }
   catch (e) { emsg("Échec : " + e.message, 1); }
 };
 function readTrim() { const v = $("#vref"), d = v.duration || 0; let s = parseFloat($("#t-start").value), e = parseFloat($("#t-end").value);
@@ -468,7 +472,7 @@ $("#imp").onchange = async e => {
     for (const m of data) {
       n++; msg.textContent = `Import ${n} / ${data.length} : ${m.name}…`;
       const row = { id: m.id, kind: m.kind, name: m.name, note: m.note || "", diff: m.diff ?? null, risk: m.risk ?? null, spec: m.spec ?? null,
-        source: m.source || null, catalog: !!m.catalog, ord: m.order || 0, trim_start: m.trimStart ?? null, trim_end: m.trimEnd ?? null, video_path: null, poster_path: null };
+        source: m.source || null, catalog: !!m.catalog, description: m.description || null, ord: m.order || 0, trim_start: m.trimStart ?? null, trim_end: m.trimEnd ?? null, video_path: null, poster_path: null };
       for (const [k, key, type] of [["video", "video_path", "video/mp4"], ["poster", "poster_path", "image/jpeg"]]) {
         if (m[k] && files[m[k]]) {
           const path = `moves/${m.id}/${k}-import.${type === "video/mp4" ? "mp4" : "jpg"}`;

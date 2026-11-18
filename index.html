@@ -6,7 +6,7 @@
 <title>Rock Acro MJGO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Work+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 
@@ -157,6 +157,7 @@
     <button class="btn" id="close">✕ Fermer</button>
   </div>
   <div class="pinfo" id="pinfo"></div>
+  <div class="desc" id="pdesc" hidden></div>
 
   <div class="stages" id="stages">
     <figure class="stage" id="st-ref">
@@ -205,6 +206,7 @@
     <label>Nom<input id="e-name" maxlength="80"></label>
     <label>Type<select id="e-kind"><option>Porté</option><option>Passe</option><option>Combinaison</option><option>Danse</option></select></label>
     <label class="full">Sous-titre<input id="e-note" maxlength="160"></label>
+    <label class="full">Description / étapes <span class="hint">une étape par ligne</span><textarea id="e-desc" rows="5" class="ta" maxlength="1500"></textarea></label>
     <div><span class="lbl">Difficulté</span><div class="rate" data-rate="e-diff"></div></div>
     <div><span class="lbl">Risque</span><div class="rate" data-rate="e-risk"></div></div>
     <div><span class="lbl">Spectaculaire</span><div class="rate" data-rate="e-spec"></div></div>
@@ -239,6 +241,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="app.js?v=4"></script>
+<script type="module" src="app.js?v=5"></script>
 </body>
 </html>
