@@ -155,25 +155,42 @@ function load() {
   if (hasVid(m)) { vr.hidden = false; $("#novid").hidden = true; setVideo(vr, pub(m.video_path), m.id); $("#play").textContent = "Pause"; }
   else { vr.dataset.want = ""; vr.pause(); vr.removeAttribute("src"); vr.load(); vr.hidden = true; $("#novid").hidden = false; $("#novid-a").textContent = profile?.is_admin ? "Ajoute-la avec « Modifier la fiche »." : ""; }
   // mes vidéos
-  const mine = MYVIDS.filter(v => v.move_id === m.id);
-  $("#st-me").hidden = !mine.length;
-  $("#mysel").innerHTML = mine.map(v => `<option value="${v.id}">${new Date(v.created_at).toLocaleDateString("fr-BE")}</option>`).join("");
-  if (mine.length) playMine(mine[0].id); else { const vm = $("#vme"); vm.pause(); vm.removeAttribute("src"); vm.load(); }
-  $("#mylist").innerHTML = mine.map(v => `<div class="myv"><span>Ma vidéo du ${new Date(v.created_at).toLocaleDateString("fr-BE")} · ${(v.size_bytes / 1048576).toFixed(1)} Mo</span><button class="btn danger sm" data-delv="${v.id}">Supprimer</button></div>`).join("");
-  $$("[data-delv]").forEach(b => b.onclick = () => delMine(b.dataset.delv, b));
+  renderGallery(m);
   // statut
   const st = PROG[m.id];
   $$("#status [data-st]").forEach(b => b.classList.toggle("on", b.dataset.st === st));
   $("#p-note").value = ""; $("#p-msg").textContent = "";
   $("#edit").hidden = !profile?.is_admin; $("#editp").hidden = true;
 }
-async function playMine(id) {
-  const v = MYVIDS.find(x => x.id === id); if (!v) return;
-  const { data, error } = await sb.storage.from("personal").createSignedUrl(v.video_path, 3600);
-  if (error) { toast("Impossible de lire ta vidéo"); return; }
-  setVideo($("#vme"), data.signedUrl, v.id);
+let meSel = null;
+async function signed(paths) {
+  const p = paths.filter(Boolean); if (!p.length) return {};
+  const { data } = await sb.storage.from("personal").createSignedUrls(p, 3600);
+  return Object.fromEntries((data || []).map(x => [x.path, x.signedUrl]));
 }
-$("#mysel").onchange = e => playMine(e.target.value);
+async function renderGallery(m) {
+  const mine = MYVIDS.filter(v => v.move_id === m.id);
+  const urls = await signed(mine.map(v => v.poster_path));
+  if (list[cur]?.id !== m.id) return;
+  $("#gallery").innerHTML = mine.map(v => `<div class="gv${v.id === meSel ? " on" : ""}" role="button" tabindex="0" data-gv="${v.id}" aria-label="Voir ma vidéo du ${new Date(v.created_at).toLocaleDateString("fr-BE")}">
+      ${v.poster_path && urls[v.poster_path] ? `<img src="${urls[v.poster_path]}" alt="">` : '<div class="ph">▶</div>'}
+      <time>${new Date(v.created_at).toLocaleDateString("fr-BE", { day: "2-digit", month: "short" })}</time>
+      <button class="x" data-delv="${v.id}" aria-label="Supprimer">✕</button></div>`).join("")
+    + `<label class="gv add"><b>+</b>Ajouter ma vidéo<input id="my-file" type="file" accept="video/*"></label>`;
+  $$("[data-gv]").forEach(el => { el.onclick = e => { if (e.target.closest(".x")) return; showMine(el.dataset.gv); }; el.onkeydown = e => { if (e.key === "Enter") showMine(el.dataset.gv); }; });
+  $$("[data-delv]").forEach(b => b.onclick = e => { e.stopPropagation(); delMine(b.dataset.delv, b); });
+  $("#my-file").onchange = onMyFile;
+  if (!mine.length) { meSel = null; $("#st-me").hidden = true; const vm = $("#vme"); vm.pause(); vm.removeAttribute("src"); vm.load(); $("#g-msg").textContent = "Filme-toi et ajoute ta vidéo : elle s'affichera à côté de la vidéo de base pour comparer."; }
+  else { $("#g-msg").textContent = "Touche une de tes vidéos pour la comparer à la vidéo de base."; if (!mine.some(v => v.id === meSel)) showMine(mine[0].id); }
+}
+async function showMine(id) {
+  const v = MYVIDS.find(x => x.id === id); if (!v) return;
+  meSel = id; $$("[data-gv]").forEach(el => el.classList.toggle("on", el.dataset.gv === id));
+  $("#st-me").hidden = false; $("#mecap").textContent = "Moi · " + new Date(v.created_at).toLocaleDateString("fr-BE");
+  const u = (await signed([v.video_path]))[v.video_path];
+  if (!u) { toast("Impossible de lire ta vidéo"); return; }
+  setVideo($("#vme"), u, v.id);
+}
 function closeP() { $("#vref").pause(); $("#vme").pause(); $("#player").hidden = true; document.body.style.overflow = ""; render(); }
 $("#close").onclick = closeP;
 $("#prev").onclick = () => { cur = (cur - 1 + list.length) % list.length; load(); };
@@ -213,32 +230,34 @@ async function saveProgress(withNote) {
 
 // ---------------- Mes vidéos ----------------
 async function usedBytes() { return MYVIDS.reduce((a, v) => a + (+v.size_bytes || 0), 0); }
-$("#my-file").onchange = async e => {
+async function onMyFile(e) {
   const f = e.target.files[0]; if (!f) return; const m = list[cur]; e.target.value = "";
+  const msg = t => $("#g-msg").textContent = t;
   try {
     let file = f;
-    if (f.size > 8 * 1024 * 1024) { toast("Compression de la vidéo… (laisse l'écran allumé)"); file = await compress(f, s => $("#p-msg").textContent = s).catch(() => f); }
-    if (file.size > MAXB) { toast(`Vidéo trop lourde (${(file.size / 1048576).toFixed(0)} Mo, 50 Mo max). Raccourcis-la.`); return; }
-    if ((await usedBytes()) + file.size > QUOTA_MB * 1048576) { toast(`Ton espace est plein (${QUOTA_MB} Mo). Supprime une ancienne vidéo.`); return; }
-    $("#p-msg").textContent = "Envoi de ta vidéo…";
-    const ext = file.type.includes("webm") ? "webm" : "mp4";
-    const path = `${me.id}/${m.id}/${stamp()}.${ext}`;
-    const up = await sb.storage.from("personal").upload(path, file, { contentType: file.type || "video/mp4" });
+    if (f.size > 8 * 1024 * 1024) { msg("Compression de la vidéo… (laisse l'écran allumé)"); file = await compress(f, msg).catch(() => f); }
+    if (file.size > MAXB) { msg(`Vidéo trop lourde (${(file.size / 1048576).toFixed(0)} Mo, 50 Mo max). Raccourcis-la.`); return; }
+    if ((await usedBytes()) + file.size > QUOTA_MB * 1048576) { msg(`Ton espace est plein (${QUOTA_MB} Mo). Supprime une ancienne vidéo.`); return; }
+    msg("Envoi de ta vidéo…");
+    const ext = file.type.includes("webm") ? "webm" : "mp4", base = `${me.id}/${m.id}/${stamp()}`;
+    const up = await sb.storage.from("personal").upload(`${base}.${ext}`, file, { contentType: file.type || "video/mp4" });
     if (up.error) throw up.error;
-    const ins = await sb.from("user_videos").insert({ user_id: me.id, move_id: m.id, video_path: path, size_bytes: file.size }).select().single();
+    let poster = null; const pb = await posterFromFile(f);
+    if (pb) { const u2 = await sb.storage.from("personal").upload(`${base}.jpg`, pb, { contentType: "image/jpeg" }); if (!u2.error) poster = `${base}.jpg`; }
+    const ins = await sb.from("user_videos").insert({ user_id: me.id, move_id: m.id, video_path: `${base}.${ext}`, poster_path: poster, size_bytes: file.size }).select().single();
     if (ins.error) throw ins.error;
-    MYVIDS.unshift(ins.data);
+    MYVIDS.unshift(ins.data); meSel = ins.data.id;
     await sb.from("progress_log").insert({ user_id: me.id, move_id: m.id, status: PROG[m.id] || null, note: "📹 Nouvelle vidéo" });
-    $("#p-msg").textContent = "Vidéo ajoutée ✓"; load();
-  } catch (err) { $("#p-msg").textContent = "Échec de l'envoi : " + (err.message || err); }
-};
+    await renderGallery(m); showMine(ins.data.id); msg("Vidéo ajoutée ✓");
+  } catch (err) { msg("Échec de l'envoi : " + (err.message || err)); }
+}
 async function delMine(id, btn) {
-  if (!btn.classList.contains("armed")) { btn.classList.add("armed"); btn.textContent = "Confirmer ?"; setTimeout(() => { btn.classList.remove("armed"); btn.textContent = "Supprimer"; }, 4000); return; }
+  if (!btn.classList.contains("armed")) { btn.classList.add("armed"); btn.textContent = "?"; setTimeout(() => { btn.classList.remove("armed"); btn.textContent = "✕"; }, 4000); toast("Touche encore ✕ pour supprimer"); return; }
   const v = MYVIDS.find(x => x.id === id); if (!v) return;
-  await sb.storage.from("personal").remove([v.video_path]);
   const { error } = await sb.from("user_videos").delete().eq("id", id);
   if (error) { toast("Échec : " + error.message); return; }
-  MYVIDS = MYVIDS.filter(x => x.id !== id); load();
+  await sb.storage.from("personal").remove([v.video_path, v.poster_path].filter(Boolean));
+  MYVIDS = MYVIDS.filter(x => x.id !== id); if (meSel === id) meSel = null; renderGallery(list[cur]);
 }
 // Compression : relit la vidéo et la ré-enregistre en 480p (≈1,2 Mb/s)
 function compress(file, progress) {

@@ -139,7 +139,7 @@
       <div class="noVid" id="novid"><b>À filmer</b><span>Pas encore de vidéo de référence.</span><span id="novid-a"></span></div>
     </figure>
     <figure class="stage" id="st-me" hidden>
-      <figcaption>Moi <select id="mysel" class="sel sm"></select></figcaption>
+      <figcaption id="mecap">Moi</figcaption>
       <video id="vme" playsinline webkit-playsinline muted loop preload="auto"></video>
     </figure>
   </div>
@@ -157,6 +157,12 @@
   </div>
 
   <div class="panel">
+    <h3>Mes vidéos <span class="hint">visibles par toi seul (et l'admin)</span></h3>
+    <div class="full gallery" id="gallery"></div>
+    <div class="full msg" id="g-msg"></div>
+  </div>
+
+  <div class="panel">
     <h3>Ma progression</h3>
     <div class="full seg" id="status">
       <button class="btn" data-st="a_apprendre">À apprendre</button>
@@ -165,8 +171,6 @@
     </div>
     <label class="full">Note pour mon journal (facultatif)<input id="p-note" maxlength="240" placeholder="ex. réussi 3 fois sur 5, attention au timing"></label>
     <div class="full row"><button class="btn primary" id="p-save">Noter dans mon journal</button><span class="msg" id="p-msg"></span></div>
-    <label class="full">Ajouter ma vidéo <span class="hint">Visible par toi seul (et l'admin). Les grosses vidéos sont compressées avant l'envoi.</span><input id="my-file" type="file" accept="video/*"></label>
-    <div class="full" id="mylist"></div>
   </div>
 
   <div class="controls"><button class="btn" id="edit" hidden>✎ Modifier la fiche (admin)</button></div>
