@@ -484,15 +484,16 @@ $("#desc-go").onclick = async () => { const msg = $("#imp-msg"); msg.className =
   catch (e) { msg.className = "msg err"; msg.textContent = "Échec : " + (e.message || e); } };
 
 // ---------------- Admin : retirer les fiches du site P. Messin ----------------
-const isMessin = m => /messin/i.test(m.source || "");
+// Fiches du site P. Messin = celles qui n'ont ni vidéo ni image
+const isMessin = m => !m.video_path && !m.poster_path;
 async function renderMessin() {
   const ms = MOVES.filter(isMessin), box = $("#ms-list"), del = $("#ms-del");
   $("#ms-msg").className = "msg"; $("#ms-msg").textContent = "";
-  if (!ms.length) { box.innerHTML = '<p class="msg">Aucune fiche du site P. Messin dans la bibliothèque ✓</p>'; del.disabled = true; $("#ms-all").hidden = $("#ms-none").hidden = true; return; }
+  if (!ms.length) { box.innerHTML = '<p class="msg">Aucune fiche sans image ni vidéo ✓</p>'; del.disabled = true; $("#ms-all").hidden = $("#ms-none").hidden = true; return; }
   $("#ms-all").hidden = $("#ms-none").hidden = false;
   const { data } = await sb.from("user_videos").select("move_id").in("move_id", ms.map(m => m.id));
   const nv = {}; (data || []).forEach(v => nv[v.move_id] = (nv[v.move_id] || 0) + 1);
-  box.innerHTML = ms.map(m => `<label class="member ms"><span><input type="checkbox" data-ms="${esc(m.id)}" checked> <b>${esc(m.name)}</b> <span class="msg">${esc(m.kind)}${hasVid(m) ? " · avec vidéo" : ""}${nv[m.id] ? ` · ⚠ ${nv[m.id]} vidéo${nv[m.id] > 1 ? "s" : ""} de membres` : ""}</span></span></label>`).join("");
+  box.innerHTML = ms.map(m => `<label class="member ms"><span><input type="checkbox" data-ms="${esc(m.id)}" checked> <b>${esc(m.name)}</b> <span class="msg">${esc(m.kind)}${nv[m.id] ? ` · ⚠ ${nv[m.id]} vidéo${nv[m.id] > 1 ? "s" : ""} de membres` : ""}</span></span></label>`).join("");
   const upd = () => { const n = $$("[data-ms]:checked").length; del.disabled = !n; del.classList.remove("armed"); del.textContent = n ? `Supprimer les ${n} fiche${n > 1 ? "s" : ""} cochée${n > 1 ? "s" : ""}` : "Supprimer les fiches cochées"; };
   $$("[data-ms]").forEach(c => c.onchange = upd); upd();
   $("#ms-all").onclick = () => { $$("[data-ms]").forEach(c => c.checked = true); upd(); };
