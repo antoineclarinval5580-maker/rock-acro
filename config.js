@@ -7,4 +7,4 @@ export const QUOTA_MB = 100;
 export const USER_DOMAIN = "rockacro.app";
 // Mail à l'admin à chaque nouvelle inscription : clé gratuite Web3Forms (web3forms.com), liée à ton adresse.
 // La clé peut être publique : les mails partent uniquement vers l'adresse qui l'a créée.
-export const NOTIFY_KEY = "";
+export const NOTIFY_KEY = "634fb08d-b5e2-4b33-b025-38fe99df3305";
