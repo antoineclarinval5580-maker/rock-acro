@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Rock Acro">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Work+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
@@ -54,12 +54,12 @@
       <h1>Rock <span>acro</span></h1>
       <p class="sub" id="hello"></p>
     </div>
-    <nav class="bar">
-      <button class="tab" data-view="lib" aria-pressed="true">Bibliothèque</button>
-      <button class="tab" data-view="journal" aria-pressed="false">Ma progression</button>
-      <button class="tab" data-view="admin" aria-pressed="false" id="nav-admin" hidden>Admin</button>
-      <button class="tab" id="logout">Déconnexion</button>
+    <nav class="bar" id="nav">
+      <button class="tab" data-view="lib" aria-pressed="true"><span class="ico" aria-hidden="true">📚</span>Bibliothèque</button>
+      <button class="tab" data-view="journal" aria-pressed="false"><span class="ico" aria-hidden="true">📈</span>Ma progression</button>
+      <button class="tab" data-view="admin" aria-pressed="false" id="nav-admin" hidden><span class="ico" aria-hidden="true">⚙️</span>Admin</button>
     </nav>
+    <button class="tab" id="logout">Déconnexion</button>
   </header>
 
   <section id="v-wait" hidden>
@@ -151,6 +151,13 @@
       <h2>Membres</h2>
       <div id="members" class="members"></div>
     </div>
+    <div class="card" id="ms-card">
+      <h2>Fiches du site P. Messin</h2>
+      <p class="msg">Fiches importées depuis le site de Patrick Messin. Coche celles à retirer puis supprime-les. <b>Attention : c'est définitif</b>, et les vidéos perso des membres liées à ces fiches disparaissent aussi.</p>
+      <div class="row"><button class="btn sm" id="ms-all">Tout cocher</button><button class="btn sm" id="ms-none">Tout décocher</button></div>
+      <div id="ms-list" class="members"></div>
+      <div class="row"><button class="btn danger" id="ms-del" disabled>Supprimer les fiches cochées</button><span class="msg" id="ms-msg"></span></div>
+    </div>
     <div class="card">
       <h2>Importer l'ancienne bibliothèque</h2>
       <p class="msg">Choisis le fichier <b>rock-acro-export.zip</b> téléchargé depuis l'ancienne app Claude. Les fiches existantes portant le même identifiant sont mises à jour.</p>
@@ -171,7 +178,7 @@
     <span class="row" style="flex-wrap:nowrap">
       <button class="btn danger" id="q-unvid" hidden title="Retirer la vidéo de cette fiche">🗑 Vidéo</button>
       <button class="btn danger" id="q-del" hidden title="Supprimer cette fiche">🗑 Fiche</button>
-      <button class="btn" id="close">✕ Fermer</button>
+      <button class="btn" id="close" aria-label="Fermer">✕<span class="txt"> Fermer</span></button>
     </span>
   </div>
   <div class="pinfo" id="pinfo"></div>
@@ -189,7 +196,7 @@
     </figure>
   </div>
 
-  <div class="controls">
+  <div class="controls" id="ctl">
     <button class="btn" id="prev" aria-label="Fiche précédente">◀</button>
     <button class="btn" id="play">Pause</button>
     <button class="btn" id="sync" title="Relancer les deux vidéos ensemble">⟲ Ensemble</button>
@@ -259,6 +266,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="app.js?v=10"></script>
+<script type="module" src="app.js?v=11"></script>
 </body>
 </html>
