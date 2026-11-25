@@ -49,7 +49,7 @@ $("#f-login").onsubmit = async e => {
 $("#f-signup").onsubmit = async e => {
   e.preventDefault();
   const u = cleanUser($("#s-email").value);
-  if (!/^[a-z0-9._-]{3,30}$/.test(u)) { amsg("Nom d'utilisateur : 3 à 30 caractères, lettres, chiffres, point, tiret ou _.", 1); return; }
+  if (!/^[a-z0-9._-]{2,30}$/.test(u)) { amsg("Nom d'utilisateur : 2 à 30 caractères, lettres, chiffres, point, tiret ou _.", 1); return; }
   amsg("Création du profil…");
   const { data, error } = await sb.auth.signUp({
     email: toEmail(u), password: $("#s-pass").value,
@@ -475,8 +475,8 @@ async function renderAdmin() {
   $$("[data-adm]").forEach(x => x.onclick = async () => { const { error } = await sb.from("profiles").update({ is_admin: x.dataset.to === "true" }).eq("id", x.dataset.adm); if (error) toast(error.message); renderAdmin(); });
 }
 $("#em-go").onclick = async () => {
-  const list = $("#em-add").value.split(/[\s,;]+/).filter(Boolean).map(toEmail).filter(x => /^[^@\s]{3,}@[^@\s]+\.[^@\s]+$/.test(x));
-  if (!list.length) { $("#em-msg").textContent = "Aucun nom d'utilisateur valide (3 caractères minimum)."; return; }
+  const list = $("#em-add").value.split(/[\s,;]+/).filter(Boolean).map(toEmail).filter(x => /^[^@\s]{2,}@[^@\s]+\.[^@\s]+$/.test(x));
+  if (!list.length) { $("#em-msg").textContent = "Aucun nom d'utilisateur valide (2 caractères minimum)."; return; }
   const { error } = await sb.from("allowed_emails").upsert(list.map(email => ({ email })));
   $("#em-msg").textContent = error ? "Échec : " + error.message : `${list.length} accès autorisé${list.length > 1 ? "s" : ""} ✓`;
   if (!error) { $("#em-add").value = ""; renderAdmin(); }
