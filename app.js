@@ -1,5 +1,5 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-import { SUPABASE_URL, SUPABASE_KEY, QUOTA_MB, USER_DOMAIN } from "./config.js";
+import { SUPABASE_URL, SUPABASE_KEY, QUOTA_MB, USER_DOMAIN, NOTIFY_KEY } from "./config.js";
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = s => document.querySelector(s);
@@ -57,7 +57,22 @@ $("#f-signup").onsubmit = async e => {
   });
   if (error) { amsg(/fermées|Database error/i.test(error.message) ? "Les inscriptions sont fermées pour le moment. Demande à l'animateur." : /already|registered|exists/i.test(error.message) ? "Ce nom d'utilisateur est déjà pris." : error.message, 1); return; }
   if (!data.session) amsg("Profil créé ! Connecte-toi avec ton nom d'utilisateur et ton mot de passe.");
+  notifyAdmin($("#s-name").value.trim(), u, data.user?.id);
 };
+// Prévient l'admin par mail qu'un nouveau profil attend son accord
+async function notifyAdmin(name, user, uid) {
+  if (!NOTIFY_KEY) return;
+  let ok = false;
+  try { if (uid) { const { data } = await sb.from("profiles").select("approved").eq("id", uid).maybeSingle(); ok = !!data?.approved; } } catch (e) {}
+  const link = location.origin + location.pathname + "#admin";
+  const message = ok
+    ? `${name} (nom d'utilisateur : ${user}) vient de créer son profil sur Rock Acro MJGO. Son accès était déjà autorisé : il est actif.\n\nVoir les membres : ${link}`
+    : `${name} (nom d'utilisateur : ${user}) demande à rejoindre Rock Acro MJGO.\n\nPour accepter ou refuser sa demande, ouvre l'app (onglet Admin > Demandes en attente) :\n${link}`;
+  try {
+    await fetch("https://api.web3forms.com/submit", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ access_key: NOTIFY_KEY, subject: ok ? `Rock Acro : ${name} a rejoint l'app` : `Rock Acro : ${name} demande à adhérer`, from_name: "Rock Acro MJGO", message }) });
+  } catch (e) {}
+}
 $("#forgot").onclick = async () => {
   const email = $("#l-email").value.trim();
   if (!email.includes("@")) { amsg("Mot de passe oublié ? Demande à l'animateur : il peut t'en donner un nouveau.", 1); return; }
@@ -96,6 +111,7 @@ async function start() {
   }
   await Promise.all([loadMoves(), loadMine()]);
   loaded = true; render();
+  if (location.hash === "#admin" && profile.is_admin) { $("#nav-admin").click(); history.replaceState(null, "", location.pathname); }
 }
 async function loadMoves() {
   const { data, error } = await sb.from("moves").select("*").order("ord");
