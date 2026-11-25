@@ -1,5 +1,5 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-import { SUPABASE_URL, SUPABASE_KEY, QUOTA_MB } from "./config.js";
+import { SUPABASE_URL, SUPABASE_KEY, QUOTA_MB, USER_DOMAIN } from "./config.js";
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = s => document.querySelector(s);
@@ -9,6 +9,10 @@ const norm = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLow
 const stars = n => n ? "★".repeat(n) + "☆".repeat(5 - n) : "";
 const STATUS = { a_apprendre: "À apprendre", en_cours: "En cours", maitrise: "Maîtrisé" };
 const MAXB = 50 * 1024 * 1024;
+// Nom d'utilisateur <-> adresse interne
+const cleanUser = t => norm(t).trim().replace(/\s+/g, ".").replace(/[^a-z0-9._-]/g, "");
+const toEmail = t => { t = String(t || "").trim(); return t.includes("@") ? t.toLowerCase() : cleanUser(t) + "@" + USER_DOMAIN; };
+const ident = e => { e = String(e || ""); return e.endsWith("@" + USER_DOMAIN) ? e.slice(0, -USER_DOMAIN.length - 1) : e; };
 
 let me = null, profile = null, settings = { signups_open: false };
 let MOVES = [], PROG = {}, MYVIDS = [], list = [], cur = 0, speed = 1;
@@ -39,20 +43,24 @@ $$("[data-auth]").forEach(b => b.onclick = () => {
 });
 $("#f-login").onsubmit = async e => {
   e.preventDefault(); amsg("Connexion…");
-  const { error } = await sb.auth.signInWithPassword({ email: $("#l-email").value.trim(), password: $("#l-pass").value });
-  if (error) amsg(error.message.includes("Invalid") ? "E-mail ou mot de passe incorrect." : error.message.includes("confirm") ? "Confirme d'abord ton e-mail (regarde tes mails)." : error.message, 1);
+  const { error } = await sb.auth.signInWithPassword({ email: toEmail($("#l-email").value), password: $("#l-pass").value });
+  if (error) amsg(error.message.includes("Invalid") ? "Nom d'utilisateur ou mot de passe incorrect." : error.message.includes("confirm") ? "Confirme d'abord ton e-mail (regarde tes mails)." : error.message, 1);
 };
 $("#f-signup").onsubmit = async e => {
-  e.preventDefault(); amsg("Création du profil…");
+  e.preventDefault();
+  const u = cleanUser($("#s-email").value);
+  if (!/^[a-z0-9._-]{3,30}$/.test(u)) { amsg("Nom d'utilisateur : 3 à 30 caractères, lettres, chiffres, point, tiret ou _.", 1); return; }
+  amsg("Création du profil…");
   const { data, error } = await sb.auth.signUp({
-    email: $("#s-email").value.trim(), password: $("#s-pass").value,
+    email: toEmail(u), password: $("#s-pass").value,
     options: { data: { display_name: $("#s-name").value.trim() }, emailRedirectTo: location.origin + location.pathname }
   });
-  if (error) { amsg(/fermées|Database error/i.test(error.message) ? "Les inscriptions sont fermées pour le moment. Demande à l'animateur." : error.message, 1); return; }
-  if (!data.session) amsg("Profil créé ! Clique sur le lien reçu par e-mail pour l'activer, puis connecte-toi.");
+  if (error) { amsg(/fermées|Database error/i.test(error.message) ? "Les inscriptions sont fermées pour le moment. Demande à l'animateur." : /already|registered|exists/i.test(error.message) ? "Ce nom d'utilisateur est déjà pris." : error.message, 1); return; }
+  if (!data.session) amsg("Profil créé ! Connecte-toi avec ton nom d'utilisateur et ton mot de passe.");
 };
 $("#forgot").onclick = async () => {
-  const email = $("#l-email").value.trim(); if (!email) { amsg("Écris d'abord ton e-mail ci-dessus.", 1); return; }
+  const email = $("#l-email").value.trim();
+  if (!email.includes("@")) { amsg("Mot de passe oublié ? Demande à l'animateur : il peut t'en donner un nouveau.", 1); return; }
   const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
   amsg(error ? error.message : "Un lien pour changer ton mot de passe t'a été envoyé par e-mail.", !!error);
 };
@@ -431,25 +439,30 @@ async function renderAdmin() {
   const [p, g, em] = await Promise.all([sb.from("profiles").select("*").order("created_at"), sb.from("progress").select("user_id,status"), sb.from("allowed_emails").select("*").order("added_at", { ascending: false })]);
   const users = p.data || [];
   const hasAcc = new Set(users.map(u => u.email));
-  $("#emails").innerHTML = (em.data || []).map(r => `<div class="member"><span>${esc(r.email)} <span class="msg">${hasAcc.has(r.email) ? "· profil créé ✓" : "· pas encore inscrit"}</span></span><button class="btn sm danger" data-rmem="${esc(r.email)}">Retirer</button></div>`).join("") || '<p class="msg">Aucune adresse autorisée pour l\'instant.</p>';
+  $("#emails").innerHTML = (em.data || []).map(r => `<div class="member"><span>${esc(ident(r.email))} <span class="msg">${hasAcc.has(r.email) ? "· profil créé ✓" : "· pas encore inscrit"}</span></span><button class="btn sm danger" data-rmem="${esc(r.email)}">Retirer</button></div>`).join("") || '<p class="msg">Aucun accès autorisé pour l\'instant.</p>';
   $$("[data-rmem]").forEach(x => x.onclick = async () => { await sb.from("allowed_emails").delete().eq("email", x.dataset.rmem); renderAdmin(); });
   const pend = users.filter(u => !u.approved);
   $("#pending-card").hidden = !pend.length;
-  $("#pending").innerHTML = pend.map(u => `<div class="member"><span><b>${esc(u.display_name)}</b> <span class="msg">${esc(u.email || "")} · demandé le ${new Date(u.created_at).toLocaleDateString("fr-BE")}</span></span>
+  $("#pending").innerHTML = pend.map(u => `<div class="member"><span><b>${esc(u.display_name)}</b> <span class="msg">${esc(ident(u.email))} · demandé le ${new Date(u.created_at).toLocaleDateString("fr-BE")}</span></span>
      <span class="row"><button class="btn sm primary" data-ok="${esc(u.email || "")}" data-uid="${u.id}">Accepter</button><button class="btn sm danger" data-no="${u.id}">Refuser</button></span></div>`).join("");
   $$("[data-ok]").forEach(x => x.onclick = async () => { const r = x.dataset.ok ? await sb.from("allowed_emails").upsert({ email: x.dataset.ok }) : await sb.from("profiles").update({ approved: true }).eq("id", x.dataset.uid); if (r.error) toast(r.error.message); renderAdmin(); });
   $$("[data-no]").forEach(x => x.onclick = async () => { const r = await sb.from("profiles").delete().eq("id", x.dataset.no); if (r.error) toast(r.error.message); renderAdmin(); });
   const mast = {}; (g.data || []).forEach(r => { if (r.status === "maitrise") mast[r.user_id] = (mast[r.user_id] || 0) + 1; });
-  $("#members").innerHTML = users.filter(u => u.approved).map(u => `<div class="member"><span><b>${esc(u.display_name)}</b> <span class="msg">${esc(u.email || "")}</span>${u.is_admin ? ' <span class="pill maitrise">admin</span>' : ""}
+  $("#members").innerHTML = users.filter(u => u.approved).map(u => `<div class="member"><span><b>${esc(u.display_name)}</b> <span class="msg">${esc(ident(u.email))}</span>${u.is_admin ? ' <span class="pill maitrise">admin</span>' : ""}
      <span class="msg"> · inscrit le ${new Date(u.created_at).toLocaleDateString("fr-BE")} · ${mast[u.id] || 0} maîtrisé(s)</span></span>
-     ${u.id === me.id ? "" : `<button class="btn sm" data-adm="${u.id}" data-to="${!u.is_admin}">${u.is_admin ? "Retirer admin" : "Rendre admin"}</button>`}</div>`).join("") || '<p class="msg">Aucun membre.</p>';
+     <span class="row"><button class="btn sm" data-pw="${u.id}" data-n="${esc(u.display_name)}">🔑 Mot de passe</button>${u.id === me.id ? "" : `<button class="btn sm" data-adm="${u.id}" data-to="${!u.is_admin}">${u.is_admin ? "Retirer admin" : "Rendre admin"}</button>`}</span></div>`).join("") || '<p class="msg">Aucun membre.</p>';
+  $$("[data-pw]").forEach(x => x.onclick = async () => {
+    const pw = prompt(`Nouveau mot de passe pour ${x.dataset.n} (6 caractères minimum) :`); if (pw == null) return;
+    if (pw.length < 6) { toast("6 caractères minimum"); return; }
+    const { error } = await sb.rpc("admin_set_password", { uid: x.dataset.pw, pw });
+    toast(error ? (/function|schema cache/i.test(error.message) ? "Exécute d'abord supabase/003_nom_utilisateur.sql dans Supabase" : "Échec : " + error.message) : `Mot de passe de ${x.dataset.n} changé ✓`); });
   $$("[data-adm]").forEach(x => x.onclick = async () => { const { error } = await sb.from("profiles").update({ is_admin: x.dataset.to === "true" }).eq("id", x.dataset.adm); if (error) toast(error.message); renderAdmin(); });
 }
 $("#em-go").onclick = async () => {
-  const list = $("#em-add").value.split(/[\s,;]+/).map(x => x.trim().toLowerCase()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
-  if (!list.length) { $("#em-msg").textContent = "Aucune adresse e-mail valide."; return; }
+  const list = $("#em-add").value.split(/[\s,;]+/).filter(Boolean).map(toEmail).filter(x => /^[^@\s]{3,}@[^@\s]+\.[^@\s]+$/.test(x));
+  if (!list.length) { $("#em-msg").textContent = "Aucun nom d'utilisateur valide (3 caractères minimum)."; return; }
   const { error } = await sb.from("allowed_emails").upsert(list.map(email => ({ email })));
-  $("#em-msg").textContent = error ? "Échec : " + error.message : `${list.length} adresse${list.length > 1 ? "s" : ""} autorisée${list.length > 1 ? "s" : ""} ✓`;
+  $("#em-msg").textContent = error ? "Échec : " + error.message : `${list.length} accès autorisé${list.length > 1 ? "s" : ""} ✓`;
   if (!error) { $("#em-add").value = ""; renderAdmin(); }
 };
 $("#signups").onclick = async () => {

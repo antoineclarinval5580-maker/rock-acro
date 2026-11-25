@@ -28,14 +28,14 @@
       <button class="tab" data-auth="signup" aria-pressed="false">Créer mon profil</button>
     </div>
     <form id="f-login" class="form">
-      <label>E-mail<input id="l-email" type="email" autocomplete="email" required></label>
+      <label>Nom d'utilisateur <span class="hint">(ou e-mail pour les anciens comptes)</span><input id="l-email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label>
       <label>Mot de passe<input id="l-pass" type="password" autocomplete="current-password" required></label>
       <button class="btn primary" type="submit">Se connecter</button>
       <button class="link" type="button" id="forgot">Mot de passe oublié ?</button>
     </form>
     <form id="f-signup" class="form" hidden>
       <label>Prénom<input id="s-name" maxlength="40" required></label>
-      <label>E-mail<input id="s-email" type="email" autocomplete="email" required></label>
+      <label>Nom d'utilisateur <span class="hint">(lettres, chiffres, . - _ ; 3 caractères minimum)</span><input id="s-email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" minlength="3" maxlength="30" required></label>
       <label>Mot de passe <span class="hint">(6 caractères minimum)</span><input id="s-pass" type="password" minlength="6" autocomplete="new-password" required></label>
       <button class="btn primary" type="submit">Créer mon profil</button>
     </form>
@@ -121,9 +121,9 @@
   <!-- Admin -->
   <section id="v-admin" hidden>
     <div class="card">
-      <h2>Accès par e-mail</h2>
-      <p class="msg">Ajoute les adresses des personnes autorisées : elles pourront créer leur profil et auront accès tout de suite. Un compte déjà créé avec une de ces adresses est validé automatiquement.</p>
-      <div class="row"><textarea id="em-add" rows="2" class="ta" placeholder="ex. lea@mail.com, tom@mail.com (une ou plusieurs adresses)"></textarea><button class="btn primary" id="em-go">Autoriser</button></div>
+      <h2>Accès autorisés</h2>
+      <p class="msg">Ajoute les noms d'utilisateur (ou e-mails) des personnes autorisées : elles pourront créer leur profil avec ce nom et auront accès tout de suite. Un compte déjà créé avec un de ces noms est validé automatiquement.</p>
+      <div class="row"><textarea id="em-add" rows="2" class="ta" placeholder="ex. lea, tom.d, sarah_42 (un ou plusieurs noms)"></textarea><button class="btn primary" id="em-go">Autoriser</button></div>
       <div class="msg" id="em-msg"></div>
       <div id="emails" class="members"></div>
     </div>
@@ -266,6 +266,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="app.js?v=12"></script>
+<script type="module" src="app.js?v=13"></script>
 </body>
 </html>
